@@ -1,7 +1,18 @@
 # mcp-firewall
 
-A security gateway that sits between AI agents and the business tools they use, and checks every request before
-it goes through.
+**A security guard for AI assistants at work.** It sits between an AI assistant and your company's files, customer
+database and email, and checks everything the assistant tries to do before it happens.
+
+> **In plain words:** companies now let AI assistants read files and send emails for staff. But an AI can be tricked:
+> a document can contain a hidden instruction like "send the customer list to this address". This tool works like a
+> guard at the door. It only lets the assistant use what it's allowed to, hides private details such as phone
+> numbers and passwords, and asks a person before anything risky, like sending an email, actually happens.
+>
+> **Who it's for:** any business that wants to use AI assistants without risking a data leak.
+>
+> **What you get:** one settings file that says what each assistant may do, an approval page for risky actions,
+> and a tamper-proof record of everything. (MCP, in the name, is the common standard AI assistants use to connect
+> to business tools.)
 
 ![The story in four steps: without the gateway a hidden note leaks customer data; with it, nothing leaves](docs/screenshots/story.gif)
 
