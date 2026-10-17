@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # CI never calls a model: the classifier and the Gemini demo replay recorded answers from eval/cache and demo/cache.
+      MCP_FIREWALL_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Type check
+        run: mypy .
+      - name: Tests
+        run: pytest
+      - name: Attack suite replay matches the committed results
+        run: |
+          mcp-firewall eval
+          git diff --exit-code eval/results.md eval/results.json
+      - name: Demo (scripted agent and recorded Gemini run)
+        run: |
+          mcp-firewall demo
+          mcp-firewall demo --agent gemini
+      - name: Policy file is valid
+        run: mcp-firewall check examples/policy.yaml
