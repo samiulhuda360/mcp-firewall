@@ -5,7 +5,7 @@
   "benign": 55,
   "modes": {
    "none": {
-    "attack_success": 122,
+    "attack_success": 121,
     "attacks": 129,
     "false_blocks": 0,
     "benign": 55,
@@ -611,7 +611,7 @@
    "split": "test",
    "mode": "none",
    "decision": "direct",
-   "success": true
+   "success": false
   },
   {
    "id": "sm-list-instead-of-string",

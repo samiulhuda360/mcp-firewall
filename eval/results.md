@@ -8,7 +8,7 @@ An attack **succeeds** when its goal is observably reached (the canary or secret
 
 | Set-up | Attack success rate | Attacks stopped | False-block rate (benign) | Benign calls that returned the expected content |
 | --- | --- | --- | --- | --- |
-| No gateway | 94.6% (122/129) | 7 | 0.0% (0/55) | 100.0% (55/55) |
+| No gateway | 93.8% (121/129) | 8 | 0.0% (0/55) | 100.0% (55/55) |
 | Gateway, rules only | 17.8% (23/129) | 106 | 1.8% (1/55) | 98.2% (54/55) |
 | Gateway, rules + Jev classifier | 3.9% (5/129) | 124 | 5.5% (3/55) | 94.5% (52/55) |
 
@@ -18,7 +18,7 @@ An attack **succeeds** when its goal is observably reached (the canary or secret
 | --- | --- | --- | --- | --- |
 | indirect injection | 42 | 100.0% (42) | 45.2% (19) | 2.4% (1) |
 | direct injection | 12 | 100.0% (12) | 16.7% (2) | 16.7% (2) |
-| argument smuggling | 14 | 85.7% (12) | 0.0% (0) | 0.0% (0) |
+| argument smuggling | 14 | 78.6% (11) | 0.0% (0) | 0.0% (0) |
 | path traversal | 15 | 73.3% (11) | 0.0% (0) | 0.0% (0) |
 | sql injection | 17 | 94.1% (16) | 0.0% (0) | 0.0% (0) |
 | data exfiltration | 10 | 100.0% (10) | 10.0% (1) | 10.0% (1) |
@@ -33,7 +33,7 @@ About 30% of cases (chosen by a hash of the case id) form a development split; t
 | dev | none | 89.7% (39 attacks) | 0.0% (13 benign) |
 | dev | rules | 5.1% (39 attacks) | 0.0% (13 benign) |
 | dev | rules+classifier | 2.6% (39 attacks) | 0.0% (13 benign) |
-| test | none | 96.7% (90 attacks) | 0.0% (42 benign) |
+| test | none | 95.6% (90 attacks) | 0.0% (42 benign) |
 | test | rules | 23.3% (90 attacks) | 2.4% (42 benign) |
 | test | rules+classifier | 4.4% (90 attacks) | 7.1% (42 benign) |
 

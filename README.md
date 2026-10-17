@@ -57,11 +57,11 @@ workspace, database and outbox:
 
 | Set-up | Attack success rate | False-block rate on normal requests |
 | --- | --- | --- |
-| No gateway (agent calls the tools directly) | 94.6% (122 of 129) | 0.0% (0 of 55) |
+| No gateway (agent calls the tools directly) | 93.8% (121 of 129) | 0.0% (0 of 55) |
 | mcp-firewall, rules only | 17.8% (23 of 129) | 1.8% (1 of 55) |
 | mcp-firewall, rules + Jev classifier | **3.9% (5 of 129)** | 5.5% (3 of 55) |
 
-On the held-out test split alone (90 attacks, 42 normal requests): 96.7% / 23.3% / 4.4% attack success and
+On the held-out test split alone (90 attacks, 42 normal requests): 95.6% / 23.3% / 4.4% attack success and
 0.0% / 2.4% / 7.1% false blocks.
 
 | Added latency | p50 | p95 |
@@ -372,10 +372,10 @@ docs/screenshots/
 ruff check . && ruff format --check . && mypy . && pytest      # or: make check
 ```
 
-141 tests: injection rules and hidden-text tricks, every redaction kind with its checksum, path, SQL and email checks,
+155 tests: injection rules and hidden-text tricks, every redaction kind with its checksum, path, SQL and email checks,
 policy parsing, rate limits, audit chain tampering, the gateway end to end (filtering, refusals, withheld results,
 redaction of structured results, approvals approved, refused and timed out, poisoned tool descriptions, upstream
-errors, metrics), the HTTP transport (auth, admin endpoints, an approval round-trip) and the stdio transport as a
+errors, metrics), the sample file server resolving `/` and `\` paths identically on every OS, the HTTP transport (auth, admin endpoints, an approval round-trip) and the stdio transport as a
 subprocess. CI also replays the attack suite offline and fails if `eval/results.md` or `eval/results.json` change,
 and runs both demos from their recordings.
 

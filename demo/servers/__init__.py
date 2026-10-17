@@ -8,7 +8,9 @@ mail server drafts to any address. Every protection in this project comes from t
 from __future__ import annotations
 
 import json
+import posixpath
 import random
+import re
 import shutil
 import sqlite3
 from dataclasses import dataclass, field
@@ -143,13 +145,21 @@ def build_files_server(root: Path) -> MCPServer:
     base = root.resolve()
 
     def locate(path: str) -> Path:
-        rel = path.lstrip("/")
-        if not rel.startswith("data"):
+        """Maps a virtual path to a file under `root` the same way on every operating system.
+
+        Both `/` and `\\` count as separators, a leading drive letter is ignored, and `..` is resolved as text
+        (it can climb from /data/reports into /data/hr, but never above the document store). A NUL byte is
+        refused, as every real file system does.
+        """
+        if "\x00" in path:
+            raise ValueError("path contains a NUL byte")
+        virtual = re.sub(r"^[A-Za-z]:", "", path.replace("\\", "/"))
+        rel = posixpath.normpath("/" + virtual.lstrip("/")).lstrip("/")
+        if rel != "data" and not rel.startswith("data/"):
             raise ValueError("paths start with /data")
-        target = (base / rel).resolve()
-        if base not in target.parents and target != base:
-            raise ValueError("path is outside the document store")
-        return target
+        if any(part.endswith((".", " ")) for part in rel.split("/")):
+            raise ValueError("file and folder names may not end with a dot or a space")  # Windows would silently trim them
+        return base.joinpath(*rel.split("/"))
 
     @mcp.tool()
     def list_files(folder: str) -> list[str]:
