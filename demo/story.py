@@ -17,6 +17,7 @@ Agents:
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import os
 import re
@@ -157,7 +158,12 @@ def _chat(body: dict[str, Any]) -> dict[str, Any]:
 
 async def gemini_agent(hub: Hub) -> None:
     tools = [
-        {"type": "function", "function": {"name": t.name, "description": t.description or "", "parameters": t.input_schema}}
+        # cleandoc: Python 3.13 strips docstring indentation at compile time and 3.12 does not, so normalise it
+        # here to keep the request (and its cache key) the same on every Python version.
+        {
+            "type": "function",
+            "function": {"name": t.name, "description": inspect.cleandoc(t.description or ""), "parameters": t.input_schema},
+        }
         for t in sorted(hub.tools, key=lambda t: t.name)
     ]
     messages: list[dict[str, Any]] = [
