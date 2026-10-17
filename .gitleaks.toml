@@ -1,0 +1,8 @@
+# Default rules, plus one allowance: the policy stores agent tokens only as SHA-256 hashes, which are not secrets.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "SHA-256 token hashes in policy files"
+regexTarget = "line"
+regexes = ['''token_sha256: [0-9a-f]{64}''']

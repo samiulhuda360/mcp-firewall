@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-firewall"
+version = "1.0.0"
+description = "A policy gateway between AI agents and their MCP tools: identity, allow/deny/approve rules, argument checks, prompt-injection detection, redaction, approvals and an audit log."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["mcp>=2.3,<3", "PyYAML>=6.0", "sqlglot>=25", "uvicorn>=0.30", "starlette>=0.40"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.10", "types-PyYAML"]
+
+[project.scripts]
+mcp-firewall = "mcp_firewall.cli:main"
+
+[tool.setuptools]
+packages = ["mcp_firewall", "mcp_firewall.inspect", "demo", "demo.servers"]
+
+[tool.setuptools.package-data]
+mcp_firewall = ["web/*.html"]
+demo = ["data/**/*", "data/**/.*"]
+
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+
+[tool.ruff.format]
+line-ending = "lf"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "A", "C4", "SIM", "RUF", "PL"]
+ignore = ["E501", "S101", "RUF001", "RUF002", "RUF003", "PLR0913", "PLR2004", "PLR0912", "PLR0915", "PLR0911", "PLR0917", "PLC0415", "S311", "PLW0603"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "BLE", "SLF001", "S105", "S106", "PLR0402"]
+"mcp_firewall/cli.py" = ["T201"]
+"demo/*" = ["T201", "S608"]
+"mcp_firewall/evaluation.py" = ["T201"]
+"mcp_firewall/bench.py" = ["T201"]
+"eval/*" = ["T201", "S608"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+disallow_any_generics = false
+warn_return_any = false
+exclude = ["tests/", "build/"]
+
+[[tool.mypy.overrides]]
+module = ["sqlglot.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,115 @@
+# mcp-firewall policy for the Acme Outdoor Gear demo.
+# Tokens are stored only as SHA-256 hashes. Make a new token and its hash with:  mcp-firewall new-token
+# The three demo tokens below are public demo values (demo-report-bot-token, demo-support-bot-token,
+# demo-approver-token). Replace them before using this file for anything real.
+version: 1
+
+servers:
+  files:
+    command: python
+    args: ["-m", "demo.servers.run", "files", "--root", "${MCPFW_DEMO_ROOT}"]
+  crm:
+    command: python
+    args: ["-m", "demo.servers.run", "crm"]
+  mail:
+    command: python
+    args: ["-m", "demo.servers.run", "mail", "--outbox", "${MCPFW_DEMO_ROOT}/outbox.jsonl"]
+
+identities:
+  - id: report-bot
+    role: analyst
+    token_sha256: ba0658eaf745cef69ae00701c54ec0ab011877899130dd1d1502f5e055edcbac
+  - id: support-bot
+    role: support
+    token_sha256: 8d6b4d3056aa7edfbb6258a7f786435149e2187c7c907cd0ae68a5fc7543a142
+  - id: sarah
+    role: approver
+    token_sha256: 13398dbc5ccc9670af6606f261884ed54db3b3a773eae74d7e140a6b6e4abc3c
+
+roles:
+  # The weekly reporting agent: reads reports, queries sales data, drafts internal email.
+  analyst:
+    redact: [secret, card, ird, email, phone]
+    keep_email_domains: [acme-outdoor.example]
+    rules:
+      - server: files
+        tools: [read_file, list_files]
+        action: allow
+        args:
+          path: {path_under: [/data/reports, /data/public]}
+          folder: {path_under: [/data/reports, /data/public]}
+      - server: files
+        tools: [write_file]
+        action: allow
+        args:
+          path: {path_under: [/data/reports/drafts]}
+          content: {no_injection: true, max_length: 20000}
+      - server: crm
+        tools: [run_query]
+        action: allow
+        rate_limit: 60/minute
+        args:
+          sql: {sql_select_only: {tables: [customers, products, orders]}}
+      - server: mail
+        tools: [draft_email]
+        action: allow
+        args:
+          to: {email_domains: [acme-outdoor.example]}
+          cc: {email_domains: [acme-outdoor.example]}
+          body: {no_injection: true}
+      - server: mail
+        tools: [send_email]
+        action: approve
+        args:
+          to: {email_domains: [acme-outdoor.example]}
+          cc: {email_domains: [acme-outdoor.example]}
+          body: {no_injection: true}
+
+  # The customer-support agent: looks up customers and tickets, drafts replies to customers.
+  support:
+    redact: [secret, card, ird]
+    rules:
+      - server: crm
+        tools: [run_query]
+        action: allow
+        rate_limit: 120/minute
+        args:
+          sql: {sql_select_only: {tables: [customers, orders, products, support_tickets]}}
+      - server: mail
+        tools: [draft_email]
+        action: allow
+        args:
+          to: {email_domains: [example.com, example.net, example.org, acme-outdoor.example]}
+          cc: {email_domains: [acme-outdoor.example]}
+          body: {no_injection: true}
+      - server: mail
+        tools: [send_email]
+        action: approve
+        args:
+          to: {email_domains: [example.com, example.net, example.org, acme-outdoor.example]}
+          cc: {email_domains: [acme-outdoor.example]}
+          body: {no_injection: true}
+      - server: files
+        tools: ["*"]
+        action: deny
+
+  # People who answer approval requests. They get no tools.
+  approver:
+    rules: []
+
+inspection:
+  injection: rules            # off | rules | rules+classifier
+  on_injection: block         # block | flag
+  classifier_threshold: 0.5
+  classifier_cache: eval/cache/jev.jsonl
+  scan_tool_descriptions: true
+
+approvals:
+  timeout_seconds: 120
+  approvers: [sarah]
+
+audit:
+  path: audit.jsonl
+
+metrics:
+  public: false

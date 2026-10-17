@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mcp-firewall approvals</title>
+<style>
+  :root { --bg: #f4f6f5; --card: #ffffff; --ink: #13302c; --muted: #5f7471; --line: #d5e0dd; --teal: #2f6f68; --teal-soft: #e6f2ef;
+          --deny: #a33a2c; --deny-soft: #f8e9e6; --warn: #8a5a12; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, "Segoe UI", sans-serif; }
+  header { background: var(--ink); color: #e6f2ef; padding: 14px 24px; display: flex; align-items: center; gap: 14px; }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .sub { opacity: .75; font-size: 13px; }
+  main { max-width: 980px; margin: 0 auto; padding: 20px 16px 40px; }
+  .token { display: flex; gap: 8px; margin-bottom: 18px; }
+  .token input { flex: 1; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+  button { font: inherit; border: 0; border-radius: 8px; padding: 9px 16px; cursor: pointer; }
+  .primary { background: var(--teal); color: #fff; }
+  .deny { background: var(--deny-soft); color: var(--deny); border: 1px solid #e4c3bc; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 22px 0 10px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .tool { font-weight: 600; font-family: "Cascadia Mono", Consolas, monospace; }
+  .meta { color: var(--muted); font-size: 13px; }
+  pre { background: var(--teal-soft); border-radius: 8px; padding: 10px 12px; margin: 10px 0; white-space: pre-wrap; word-break: break-word;
+        font: 13px/1.45 "Cascadia Mono", Consolas, monospace; }
+  .actions { display: flex; gap: 8px; align-items: center; }
+  .timer { color: var(--warn); font-size: 13px; margin-right: auto; }
+  .empty { color: var(--muted); padding: 14px 0; }
+  .pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .approved { background: var(--teal-soft); color: var(--teal); }
+  .denied, .timeout { background: var(--deny-soft); color: var(--deny); }
+  #status { color: var(--muted); font-size: 13px; min-height: 20px; }
+</style>
+</head>
+<body>
+<header><h1>mcp-firewall</h1><span class="sub">Calls waiting for a person's approval. No answer in time means the call is refused.</span></header>
+<main>
+  <div class="token">
+    <input id="token" type="password" placeholder="Approver token" autocomplete="off">
+    <button class="primary" id="save">Connect</button>
+  </div>
+  <div id="status"></div>
+  <h2>Waiting</h2>
+  <div id="pending"><div class="empty">Nothing waiting.</div></div>
+  <h2>Recent decisions</h2>
+  <div id="recent"><div class="empty">No decisions yet.</div></div>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let token = "";
+  try { token = sessionStorage.getItem("mcpfw-token") || ""; } catch (e) {}
+  $("token").value = token;
+  $("save").onclick = () => { token = $("token").value.trim(); try { sessionStorage.setItem("mcpfw-token", token); } catch (e) {} refresh(); };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  async function decide(id, decision) {
+    const r = await fetch("/api/approvals/" + id, { method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ decision }) });
+    $("status").textContent = r.ok ? (decision === "approve" ? "Approved." : "Refused.") : "Could not record the decision (" + r.status + ").";
+    refresh();
+  }
+  window.decide = decide;
+  function card(p, pending) {
+    const left = Math.max(0, Math.round(p.expires - Date.now() / 1000));
+    return `<div class="card"><div class="row"><span class="tool">${esc(p.server)} / ${esc(p.tool)}</span>
+      <span class="meta">agent <b>${esc(p.identity)}</b> (role ${esc(p.role)}) &middot; request ${esc(p.request_id)}</span></div>
+      <pre>${esc(JSON.stringify(p.args, null, 2))}</pre>
+      ${pending ? `<div class="actions"><span class="timer">Refused automatically in ${left}s</span>
+        <button class="deny" onclick="decide('${esc(p.id)}','deny')">Refuse</button>
+        <button class="primary" onclick="decide('${esc(p.id)}','approve')">Approve</button></div>`
+      : `<span class="pill ${esc(p.outcome)}">${esc(p.outcome)}</span> <span class="meta">${p.decided_by ? "by " + esc(p.decided_by) : "no answer in time"}</span>`}
+    </div>`;
+  }
+  async function refresh() {
+    if (!token) { $("status").textContent = "Enter an approver token to see waiting calls."; return; }
+    try {
+      const r = await fetch("/api/approvals", { headers: { "Authorization": "Bearer " + token } });
+      if (!r.ok) { $("status").textContent = r.status === 401 ? "That token is not an approver token." : "Error " + r.status; return; }
+      const data = await r.json();
+      $("pending").innerHTML = data.pending.length ? data.pending.map((p) => card(p, true)).join("") : '<div class="empty">Nothing waiting.</div>';
+      $("recent").innerHTML = data.recent.length ? data.recent.map((p) => card(p, false)).join("") : '<div class="empty">No decisions yet.</div>';
+      if ($("status").textContent.startsWith("Enter") || $("status").textContent.startsWith("That")) $("status").textContent = "";
+    } catch (e) { $("status").textContent = "Gateway not reachable."; }
+  }
+  refresh();
+  setInterval(refresh, 1500);
+</script>
+</body>
+</html>
